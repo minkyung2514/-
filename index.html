@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduAI - 맞춤형 AI 오답노트 & 학습 플래너</title>
+    <title>AiNote & Planner - AI 맞춤형 오답노트 & 학습 플래너</title>
     
-    <!-- TailWind CSS & FontAwesome -->
+    <!-- TailWind CSS & Chart.js & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind CDN 로딩 직후 설정 적용
         tailwind.config = {
             darkMode: 'class'
         }
@@ -33,43 +32,29 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-900 text-slate-100 min-h-screen transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100">
 
     <!-- 상단 네비게이션 바 -->
-    <nav class="bg-indigo-600 dark:bg-indigo-950 text-white shadow-lg sticky top-0 z-50 transition-colors">
+    <nav class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 text-white sticky top-0 z-50 transition-colors">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-brain text-2xl text-yellow-300"></i>
-                <span class="font-bold text-xl tracking-tight">EduAI <span class="text-xs font-normal bg-indigo-500 px-2 py-1 rounded-full">v2.5</span></span>
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight block leading-none">AiNote & Planner</span>
+                    <span class="text-[10px] text-slate-400 font-normal">초·중·고 맞춤형 인공지능 학습 솔루션</span>
+                </div>
             </div>
             
-            <!-- 상단 제어 버튼 모음 -->
+            <!-- 상단 제어 버튼 및 학년 선택 -->
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <!-- 1. 다크/라이트 모드 토글 버튼 -->
-                <button type="button" onclick="toggleDarkMode()" class="bg-indigo-500 hover:bg-indigo-400 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 shadow-sm">
-                    <i id="themeIcon" class="fa-solid fa-moon text-yellow-300"></i>
-                    <span id="themeText">다크모드</span>
-                </button>
+                <!-- 학년급 선택 탭 -->
+                <div class="bg-slate-900/80 p-1 rounded-xl border border-slate-700/60 flex text-xs">
+                    <button type="button" onclick="setSchoolLevel('elementary')" id="btn-elementary" class="px-3 py-1.5 rounded-lg font-semibold transition">초등</button>
+                    <button type="button" onclick="setSchoolLevel('middle')" id="btn-middle" class="px-3 py-1.5 rounded-lg font-semibold transition">중등</button>
+                    <button type="button" onclick="setSchoolLevel('high')" id="btn-high" class="px-3 py-1.5 rounded-lg font-semibold transition bg-blue-600 text-white shadow">고등</button>
+                </div>
 
-                <!-- 2. 앱 사용방법 버튼 -->
-                <button type="button" onclick="openModal('howToUseModal')" class="bg-yellow-400 hover:bg-yellow-300 text-indigo-900 font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 shadow-md">
-                    <i class="fa-solid fa-book-open"></i> 사용방법
-                </button>
-
-                <!-- 3. 수행평가 정보 버튼 -->
-                <button type="button" onclick="openModal('evaluationModal')" class="bg-indigo-500 hover:bg-indigo-400 dark:bg-indigo-800 dark:hover:bg-indigo-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-award"></i> 수행평가 정보
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- 메인 컨테이너 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-        <!-- 메인 비주얼 배너 -->
-        <section class="bg-gradient-to-r from-indigo-600 to-indigo-500 dark:from-indigo-900 dark:to-slate-800 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="space-y-2">
-                <span class="bg-indigo-400/40 text-yellow-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">AI STUDY ASSISTANT</span>
-                <h1 class="text-2xl md:text-3xl font-extrabold">나만의 AI 맞춤형 오답노트 & 플래너</h1>
-                <p class="text-indigo-100 dark:text
+                <!-- 다크/라이트 모드 토글 -->
+                <button type="button" onclick="toggleDarkMode()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5
