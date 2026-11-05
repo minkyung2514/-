@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiNote & Planner - AI 맞춤형 오답노트 & 학습 플래너</title>
+    
+    <!-- Tailwind CSS & Chart.js & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; transition: background-color 0.2s, color 0.2s; }
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #2563eb, transparent);
+            animation: scan 2s infinite ease-in-out;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen transition-colors duration-200">
+
+    <!-- 상단 네비게이션 바 -->
+    <nav class="bg-slate-800/90 dark:bg-slate-800/90 border-b border-slate-700/60 text-white sticky top-0 z-50 backdrop-blur-md transition-colors" id="mainNav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white shadow-lg">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight block leading-none">AiNote & Planner</span>
+                    <span class="text-[10px] text-slate-400 dark:text-slate-400" id="subTitle">초·중·고 맞춤형 인공지능 학습 솔루션</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div class="bg-slate-900/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-700/60 flex text-xs" id="levelGroup">
+                    <button type="button" onclick="setSchoolLevel('elementary')" id="btn-elementary" class="px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-white">초등</button>
+                    <button type="button" onclick="setSchoolLevel('middle')" id="btn-middle" class="px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-white">중등</button>
+                    <button type="button" onclick="setSchoolLevel('high')" id="btn-high" class="px-3 py-1.5 rounded-lg font-semibold transition bg-blue-600 text-white shadow">고등</button>
+                </div>
+
+                <button type="button" onclick="toggleDarkMode()" id="themeBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-600">
+                    <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
+                    <span id="themeText">라이트모드</span>
+                </button>
+
+                <button type="button" onclick="openModal('howToUseModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-book-open"></i> 사용방법
+                </button>
+
+                <button type="button" onclick="openModal('evaluationModal')" id="evalBtn" class="bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-award text-yellow-400"></i> 수행평가 가이드
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨테이너 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- 히어로 배너 -->
+        <section id="heroSection" class="bg-gradient-to-r from-slate-800 via-indigo-950 to-slate-900 border border-slate-700/60 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all">
+            <div class="space-y-2">
+                <span class="bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[11px] font-bold px-3 py-1 rounded-full uppercase" id="levelTag">고등 수능/내신 대비 정밀 AI 시스템</span>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">AI 맞춤형 오답노트 & 학습 플래너</h1>
+                <p class="text-slate-300 text-xs md:text-sm max-w-2xl leading-relaxed" id="heroDesc">OCR 문제 스캔으로 시간 절감 · ML 분류 모델을 통한 취약 단원 정밀 분석 · 일일 자동 스케줄링</p>
+            </div>
+            
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <button type="button" onclick="scrollToScan()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                    <i class="fa-solid fa-camera"></i> 문제 스캔하기
+                </button>
+                <button type="button" onclick="openModal('howToUseModal')" id="heroSubBtn" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie"></i> 취약점 리포트
+                </button>
+            </div>
+        </section>
+
+        <!-- 그리드 2열 영역 (OCR 등록 & 취약점 분석) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="scanSection">
+            
+            <!-- 1. 오답 문제 등록 & OCR 스캔 -->
+            <div class="card-box bg-slate-800/60 border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg backdrop-blur-md transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-700/60 dark:border-slate-700/60 pb-3 card-header">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-crop-simple text-blue-500"></i> 오답 문제 등록 & OCR 스캔
+                    </h2>
+                    <span class="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2.5 py-1 rounded-md">Step 1 / 3</span>
+                </div>
+
+                <!-- 이미지 업로드 스캔 뷰 -->
+                <div class="relative border-2 border-dashed border-slate-600 dark:border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 transition cursor-pointer bg-slate-900/40 dark:bg-slate-900/40" id="uploadZone">
+                    <div id="scanLine" class="scan-line hidden"></div>
+                    <div class="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-camera text-xl"></i>
+                    </div>
+                    <p class="text-sm font-bold card-text">문제 이미지를 드래그하거나 클릭하여 업로드하세요</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-400 mt-1">PNG, JPG 지원 · AI가 문제를 자동 텍스트화합니다</p>
+                    <button type="button" onclick="simulateScan()" class="mt-3 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-500 transition">샘플 문제 스캔 테스트</button>
+                </div>
+
+                <!-- 폼 입력 영역 -->
+                <form id="noteForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 mb-1">과목 선택</label>
+                            <select id="subjectSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 input-box">
+                                <option value="수학">수학</option>
+                                <option value="영어">영어</option>
+                                <option value="국어">국어</option>
+                                <option value="과학">과학</option>
+                                <option value="사회">사회</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 mb-1">체감 난이도</label>
+                            <select id="difficultySelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 input-box">
+                                <option value="상">상 (고난도)</option>
+                                <option value="중" selected>중 (보통)</option>
+                                <option value="하">하 (기본)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 mb-1">문제 내용 (OCR 추출 결과)</label>
+                        <textarea id="problemText" rows="3" placeholder="스캔 완료 시 문항 텍스트가 자동으로 입력됩니다." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 input-box"></textarea>
+                    </div>
+                    <button type="button" onclick="addNote()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow text-sm">
+                        오답노트에 저장하기
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2. AI 취약점 분석 리포트 -->
+            <div class="card-box bg-slate-800/60 border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg backdrop-blur-md transition-colors flex flex-col justify-between">
+                <div class="flex items-center justify-between border-b border-slate-700/60 dark:border-slate-700/60 pb-3 card-header">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i> 과목별 취약점 분석 리포트
+                    </h2>
+                    <span class="text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold px-2.5 py-1 rounded-md">Step 2 / 3</span>
+                </div>
+                
+                <div class="w-full h-64 flex items-center justify-center p-2">
+                    <canvas id="vulnerabilityChart"></canvas>
+                </div>
+
+                <div class="bg-indigo-950/40 border border-indigo-800/40 p-4 rounded-xl text-xs space-y-1.5 feedback-box">
+                    <p class="font-bold text-indigo-400 dark:text-indigo-300 flex items-center gap-1.5 text-sm">
+                        <i class="fa-solid fa-robot"></i> AI 맞춤 학습 피드백
+                    </p>
+                    <p class="text-slate-300 dark:text-slate-300 leading-relaxed" id="aiFeedback">
+                        현재 <strong class="text-blue-400">수학(85%)</strong> 단원의 오답 비율이 가장 높습니다. 망각곡선 주기 기준으로 오늘 집중 복습을 권장합니다.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 3. 일일 오답 복습 플래너 -->
+        <section class="card-box bg-slate-800/60 border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg backdrop-blur-md transition-colors">
+            <div class="flex items-center justify-between border-b border-slate-700/60 dark:border-slate-700/60 pb-3 card-header">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check text-emerald-400"></i> 일일 오답 복습 플래너
+                </h2>
+                <span class="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-md">Step 3 / 3</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="plannerList">
+                <div class="planner-item bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <span class="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">수학</span>
+                        <h3 class="font-semibold text-sm mt-1 card-text">미적분 그래프 개형 파악 오답</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">에빙하우스 주기: 2회차 복습</p>
+                    </div>
+                    <button type="button" onclick="toggleCheck(this)" class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                </div>
+                <div class="planner-item bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <span class="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">영어</span>
+                        <h3 class="font-semibold text-sm mt-1 card-text">빈칸 추론 34번 유형 복습</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">에빙하우스 주기: 1회차 복습</p>
+                    </div>
+                    <button type="button" onclick="toggleCheck(this)" class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                </div>
+                <div class="planner-item bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <span class="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">과학</span>
+                        <h3 class="font-semibold text-sm mt-1 card-text">화학 반응식 계수 맞추기</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">에빙하우스 주기: 3회차 복습</p>
+                    </div>
+                    <button type="button" onclick="toggleCheck(this)" class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 모달 팝업 영역 -->
+    <div id="howToUseModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100 modal-box">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-book-open text-blue-400"></i> 사용방법 Guide</h3>
+                <button onclick="closeModal('howToUseModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs leading-relaxed text-slate-300 modal-text">
+                <p><strong>1. 문제 스캔:</strong> 문제 사진을 업로드하거나 샘플 테스트를 누르면 AI가 문항을 텍스트로 인식합니다.</p>
+                <p><strong>2. 취약점 분석:</strong> 저장된 오답 데이터를 기반으로 Chart.js 시각화 분석 결과를 보여줍니다.</p>
+                <p><strong>3. 일일 플래너:</strong> 망각곡선을 반영하여 복습 시점이 된 문제 목록이 자동 배치됩니다.</p>
+            </div>
+            <button onclick="closeModal('howToUseModal')" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl text-xs font-bold text-white">확인</button>
+        </div>
+    </div>
+
+    <div id="evaluationModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100 modal-box">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-award text-yellow-400"></i> 수행평가 가이드</h3>
+                <button onclick="closeModal('evaluationModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs leading-relaxed text-slate-300 modal-text">
+                <p><strong>· 초등:</strong> 기본 개념 단원별 퀴즈 및 서술형 탐구 가이드</p>
+                <p><strong>· 중등:</strong> 교과 서·논술형 핵심 키워드 정리 및 연습</p>
+                <p><strong>· 고등:</strong> 과목별 탐구 보고서 주제 추천 및 수능 연계 문항 분석</p>
+            </div>
+            <button onclick="closeModal('evaluationModal')" class="w-full bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-xs font-bold text-white">확인</button>
+        </div>
+    </div>
+
+    <!-- 스크립트 로직 -->
+    <script>
+        let myChart = null;
+
+        // 1. 다크 / 라이트 모드 전환 로직
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            const themeBtn = document.getElementById('themeBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            const mainNav = document.getElementById('mainNav');
+            const evalBtn = document.getElementById('evalBtn');
+            const heroSubBtn = document.getElementById('heroSubBtn');
+            const levelGroup = document.getElementById('levelGroup');
+
+            if (isDark) {
+                // 다크모드 적용
+                document.body.className = "bg-slate-900 text-slate-100 min-h-screen transition-colors duration-200";
+                mainNav.className = "bg-slate-800/90 border-b border-slate-700/60 text-white sticky top-0 z-50 backdrop-blur-md transition-colors";
+                themeBtn.className = "bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-600";
+                themeIcon.className = "fa-solid fa-sun text-amber-400";
+                themeText.textContent = "라이트모드";
+                evalBtn.className = "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5";
+                heroSubBtn.className = "w-full md:w-auto bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm whitespace-nowrap";
+                levelGroup.className = "bg-slate-900/80 p-1 rounded-xl border border-slate-700/60 flex text-xs";
+
+                // 카드 스타일 전환
+                document.querySelectorAll('.card-box').forEach(el => {
+                    el.className = "card-box bg-slate-800/60 border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg backdrop-blur-md transition-colors text-slate-100";
+                });
+                document.querySelectorAll('.uploadZone, #uploadZone').forEach(el => {
+                    el.className = "relative border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 transition cursor-pointer bg-slate-900/40";
+                });
+                document.querySelectorAll('.input-box').forEach(el => {
+                    el.className = "w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 input-box";
+                });
+                document.querySelectorAll('.planner-item').forEach(el => {
+                    el.className = "planner-item bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center shadow-sm";
+                });
+                document.querySelectorAll('.feedback-box').forEach(el => {
+                    el.className = "bg-indigo-950/40 border border-indigo-800/40 p-4 rounded-xl text-xs space-y-1.5 feedback-box";
+                });
+            } else {
+                // 라이트모드 적용 (하얀색 바탕 + 밝은 파란색 포인트)
+                document.body.className = "bg-slate-100 text-slate-800 min-h-screen transition-colors duration-200";
+                mainNav.className = "bg-white/90 border-b border-blue-100 text-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-sm transition-colors";
+                themeBtn.className = "bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-blue-200";
+                themeIcon.className = "fa-solid fa-moon text-blue-600";
+                themeText.textContent = "다크모드";
+                evalBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5";
+                heroSubBtn.className = "w-full md:w-auto bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm whitespace-nowrap";
+                levelGroup.className = "bg-slate-100 p-1 rounded-xl border border-slate-200 flex text-xs";
+
+                // 카드 스타일 전환 (밝은 흰색 카드로 변환)
+                document.querySelectorAll('.card-box').forEach(el => {
+                    el.className = "card-box bg-white border border-blue-100 p-6 rounded-2xl space-y-4 shadow-sm transition-colors text-slate-800";
+                });
+                document.querySelectorAll('#uploadZone').forEach(el => {
+                    el.className = "relative border-2 border-dashed border-blue-200 rounded-xl p-8 text-center hover:border-blue-500 transition cursor-pointer bg-blue-50/50";
+                });
+                document.querySelectorAll('.input-box').forEach(el => {
+                    el.className = "w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 input-box";
+                });
+                document.querySelectorAll('.planner-item').forEach(el => {
+                    el.className = "planner-item bg-slate-50 border border-blue-100 p-4 rounded-xl flex justify-between items-center shadow-sm";
+                });
+                document.querySelectorAll('.feedback-box').forEach(el => {
+                    el.className = "bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs space-y-1.5 feedback-box";
+                });
+            }
+
+            // 차트 색상 테마 동적 업데이트
+            updateChartTheme(isDark);
+        }
+
+        // 2. 학교급 선택 버튼 토글
+        function setSchoolLevel(level) {
+            const buttons = {
+                elementary: document.getElementById('btn-elementary'),
+                middle: document.getElementById('btn-middle'),
+                high: document.getElementById('btn-high')
+            };
+            const levelTag = document.getElementById('levelTag');
+
+            Object.keys(buttons).forEach(key => {
+                buttons[key].className = 'px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-blue-500';
+            });
+
+            buttons[level].className = 'px-3 py-1.5 rounded-lg font-semibold transition bg-blue-600 text-white shadow';
+
+            const levelNames = {
+                elementary: '초등 기초 개념 & 단원별 퀴즈 학습 시스템',
+                middle: '중등 내신 대비 핵심 개념 정리 시스템',
+                high: '고등 수능/내신 대비 정밀 AI 시스템'
+            };
+            levelTag.textContent = levelNames[level];
+        }
+
+        // 3. OCR 스캔 애니메이션 시뮬레이션
+        function simulateScan() {
+            const scanLine = document.getElementById('scanLine');
+            const textarea = document.getElementById('problemText');
+            
+            scanLine.classList.remove('hidden');
+            textarea.value = "AI가 이미지를 스캔 중입니다...";
+            
+            setTimeout(() => {
+                scanLine.classList.add('hidden');
+                textarea.value = "[수학 - 미적분] 함수 f(x) = x^3 - 3x + 1의 극값을 구하고, 구간 [0, 2]에서의 최댓값을 구하시오.";
+            }, 1500);
+        }
+
+        // 4. 모달 제어
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function scrollToScan() { document.getElementById('scanSection').scrollIntoView({ behavior: 'smooth' }); }
+
+        // 5. 오답 저장 테스트
+        function addNote() {
+            const val = document.getElementById('problemText').value;
+            if(!val.trim()) { alert('문제 내용을 입력해주세요!'); return; }
+            alert('오답노트에 성공적으로 저장되었습니다!');
+            document.getElementById('problemText').value = '';
+        }
+
+        // 6. 복습 플래너 완료 체크 기능
+        function toggleCheck(btn) {
+            if (btn.classList.contains('bg-emerald-500')) {
+                btn.className = "w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition";
+                btn.innerHTML = "";
+            } else {
+                btn.className = "w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow transition";
+                btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+            }
+        }
+
+        // 7. Chart.js 차트 생성 및 테마 전환
+        function initChart() {
+            const ctx = document.getElementById('vulnerabilityChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['수학', '영어', '국어', '과학', '사회'],
+                    datasets: [{
+                        label: '오답 비율',
+                        data: [85, 45, 60, 75, 30],
+                        backgroundColor: 'rgba(37, 99, 235, 0.25)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(148, 163, 184, 0.2)' },
+                            grid: { color: 'rgba(148, 163, 184, 0.2)' },
+                            pointLabels: { color: '#64748b', font: { size: 12, weight: 'bold' } },
+                            ticks: { display: false, max: 100 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateChartTheme(isDark) {
+            if (!myChart) return;
+            const labelColor = isDark ? '#94a3b8' : '#334155';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(37, 99, 235, 0.15)';
+            
+            myChart.options.scales.r.pointLabels.color = labelColor;
+            myChart.options.scales.r.grid.color = gridColor;
+            myChart.options.scales.r.angleLines.color = gridColor;
+            myChart.update();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+        });
+    </script>
+</body>
+</html>
