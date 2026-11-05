@@ -5,261 +5,491 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AiNote & Planner - AI 맞춤형 오답노트 & 학습 플래너</title>
     
-    <!-- Tailwind CSS & Chart.js & FontAwesome -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
     </script>
+    
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap');
-        body { font-family: 'Pretendard', sans-serif; transition: background-color 0.2s, color 0.2s; }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 레이저 스캔 애니메이션 */
         .scan-line {
             position: absolute;
+            left: 0;
             width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-            animation: scan 2s infinite ease-in-out;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #3b82f6, #60a5fa, #3b82f6, transparent);
+            box-shadow: 0 0 15px #3b82f6;
+            animation: scan 2.2s infinite ease-in-out;
         }
+
         @keyframes scan {
-            0% { top: 0%; }
-            50% { top: 100%; }
-            100% { top: 0%; }
+            0% { top: 0%; opacity: 0.8; }
+            50% { top: 95%; opacity: 1; }
+            100% { top: 0%; opacity: 0.8; }
+        }
+
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen transition-colors duration-200">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white">
 
-    <!-- 상단 네비게이션 바 -->
-    <nav class="bg-slate-800/90 border-b border-slate-700/60 text-white sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white shadow-lg">
+    <!-- 1. 상단 글로벌 네비게이션 바 -->
+    <nav class="bg-slate-900/90 dark:bg-slate-900/90 dark:border-slate-800 border-b border-slate-200 bg-white/90 text-slate-800 dark:text-white sticky top-0 z-40 backdrop-blur-md transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- 브랜드 로고 및 타이틀 -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-blue-500/20">
                     <i class="fa-solid fa-brain"></i>
                 </div>
                 <div>
-                    <span class="font-bold text-lg tracking-tight block leading-none">AiNote & Planner</span>
-                    <span class="text-[10px] text-slate-400">초·중·고 맞춤형 인공지능 학습 솔루션</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-lg tracking-tight block leading-none">AiNote & Planner</span>
+                        <span id="schoolBadge" class="text-[11px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">고등학생</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-medium">초·중·고 맞춤형 인공지능 학습 솔루션</span>
                 </div>
             </div>
             
+            <!-- 우측 제어 컨트롤 버튼 그룹 -->
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <div class="bg-slate-900/80 p-1 rounded-xl border border-slate-700/60 flex text-xs">
-                    <button type="button" onclick="setSchoolLevel('elementary')" id="btn-elementary" class="px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-white">초등</button>
-                    <button type="button" onclick="setSchoolLevel('middle')" id="btn-middle" class="px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-white">중등</button>
-                    <button type="button" onclick="setSchoolLevel('high')" id="btn-high" class="px-3 py-1.5 rounded-lg font-semibold transition bg-blue-600 text-white shadow">고등</button>
+                <!-- 학교급 탭 선택 버튼 -->
+                <div class="bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 flex text-xs font-medium">
+                    <button type="button" onclick="setSchoolLevel('elementary')" id="btn-elementary" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1">
+                        <i class="fa-solid fa-child text-[10px]"></i> 초등
+                    </button>
+                    <button type="button" onclick="setSchoolLevel('middle')" id="btn-middle" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1">
+                        <i class="fa-solid fa-user-graduate text-[10px]"></i> 중등
+                    </button>
+                    <button type="button" onclick="setSchoolLevel('high')" id="btn-high" class="px-3 py-1.5 rounded-lg transition bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30 flex items-center gap-1">
+                        <i class="fa-solid fa-graduation-cap text-[10px]"></i> 고등
+                    </button>
                 </div>
 
-                <button type="button" onclick="toggleDarkMode()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-600">
+                <!-- 다크/라이트 모드 토글 -->
+                <button type="button" onclick="toggleDarkMode()" class="bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm">
                     <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
-                    <span id="themeText">라이트모드</span>
+                    <span id="themeText" class="hidden sm:inline">라이트모드</span>
                 </button>
 
-                <button type="button" onclick="openModal('howToUseModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-book-open"></i> 사용방법
+                <!-- 사용방법 가이드 모달 오픈 버튼 -->
+                <button type="button" onclick="openModal('howToUseModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/20">
+                    <i class="fa-solid fa-book-open"></i> <span class="hidden sm:inline">사용방법</span>
                 </button>
 
-                <button type="button" onclick="openModal('evaluationModal')" class="bg-slate-700 hover:bg-slate-600 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-award text-yellow-400"></i> 수행평가 가이드
+                <!-- 수행평가 가이드 모달 오픈 버튼 -->
+                <button type="button" onclick="openModal('evaluationModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-award text-yellow-400"></i> <span class="hidden md:inline">수행평가 가이드</span>
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- 메인 컨테이너 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- 메인 대시보드 콘텐츠 영역 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1 w-full">
 
-        <!-- 히어로 섹션 -->
-        <section class="bg-gradient-to-r from-slate-800 via-indigo-950 to-slate-900 border border-slate-700/60 rounded-2xl p-6 text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="space-y-2">
-                <span class="bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[11px] font-bold px-3 py-1 rounded-full uppercase" id="levelTag">고등 수능/내신 대비 정밀 AI 시스템</span>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">AI 맞춤형 오답노트 & 학습 플래너</h1>
-                <p class="text-slate-300 text-xs md:text-sm max-w-2xl leading-relaxed">OCR 문제 스캔으로 시간 절감 · ML 분류 모델을 통한 취약 단원 정밀 분석 · 일일 자동 스케줄링</p>
+        <!-- 2. 메인 히어로 헤더 섹션 -->
+        <section class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <!-- 은은한 배경 광원 효과 -->
+            <div class="absolute -top-24 -left-24 w-72 h-72 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="space-y-3 z-10 max-w-3xl">
+                <div class="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold px-3 py-1 rounded-full" id="levelTag">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    고등 수능/내신 대비 정밀 AI 시스템
+                </div>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+                    AI 맞춤형 오답노트 & 학습 플래너
+                </h1>
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    OCR 문제 스캔으로 노트 작성 시간 단축 · ML 분류 모델 기반 취약 단원 정밀 분석 · 시험 D-Day 기준 망각곡선 일일 자동 스케줄링
+                </p>
             </div>
             
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <button type="button" onclick="scrollToScan()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+            <!-- 액션 버튼들 -->
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto z-10">
+                <button type="button" onclick="scrollToScan()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 text-sm whitespace-nowrap active:scale-95">
                     <i class="fa-solid fa-camera"></i> 문제 스캔하기
                 </button>
-                <button type="button" onclick="openModal('howToUseModal')" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm whitespace-nowrap">
-                    <i class="fa-solid fa-chart-pie"></i> 취약점 리포트
+                <button type="button" onclick="scrollToReport()" class="w-full sm:w-auto bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm whitespace-nowrap active:scale-95">
+                    <i class="fa-solid fa-chart-pie text-indigo-400"></i> 취약점 리포트
                 </button>
             </div>
         </section>
 
-        <!-- 그리드 2열 영역 (OCR 등록 & 취약점 분석) -->
+        <!-- 3. 메인 기능 영역 그리드 (Step 1 & Step 2) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="scanSection">
             
-            <!-- 1. 오답 문제 등록 & OCR 스캔 -->
-            <div class="bg-slate-800/60 backdrop-blur-md border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg">
-                <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-                    <h2 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-crop-simple text-blue-400"></i> 오답 문제 등록 (OCR 스캔)
-                    </h2>
-                    <span class="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-md">자동 텍스트 추출 지원</span>
-                </div>
-
-                <!-- 이미지 업로드 스캔 뷰 -->
-                <div class="relative border-2 border-dashed border-slate-600 rounded-xl p-6 text-center hover:border-blue-500 transition cursor-pointer bg-slate-900/40" id="uploadZone">
-                    <div id="scanLine" class="scan-line hidden"></div>
-                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 mb-2"></i>
-                    <p class="text-sm font-semibold">문제 이미지를 드래그하거나 클릭하여 업로드하세요</p>
-                    <p class="text-xs text-slate-400 mt-1">PNG, JPG, JPEG 지원 (최대 10MB)</p>
-                </div>
-
-                <!-- 폼 입력 영역 -->
-                <form id="noteForm" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">과목 선택</label>
-                            <select id="subjectSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                                <option value="수학">수학</option>
-                                <option value="영어">영어</option>
-                                <option value="국어">국어</option>
-                                <option value="과학">과학</option>
-                            </select>
+            <!-- STEP 1: 오답 문제 등록 & OCR 스캔 영역 -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-6 rounded-2xl space-y-5 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">1</span>
+                            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i> 오답 문제 등록 & OCR 스캔
+                            </h2>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">난이도</label>
-                            <select id="difficultySelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                                <option value="상">상 (고난도)</option>
-                                <option value="중" selected>중 (보통)</option>
-                                <option value="하">하 (기본)</option>
-                            </select>
+                        <span class="text-[11px] bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-full font-medium">Step 1 / 3</span>
+                    </div>
+
+                    <!-- 이미지 드래그앤드롭 / 업로드 드롭존 -->
+                    <div class="relative border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-6 text-center transition cursor-pointer bg-slate-950/50 group overflow-hidden" 
+                         id="uploadZone" onclick="triggerFileInput()">
+                        
+                        <!-- 스캔 진행 애니메이션 레이어 (기본 hidden) -->
+                        <div id="scanLine" class="scan-line hidden"></div>
+                        
+                        <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        
+                        <div id="uploadPlaceholder" class="space-y-2">
+                            <div class="w-12 h-12 bg-slate-800 group-hover:bg-blue-600/20 text-slate-400 group-hover:text-blue-400 rounded-full flex items-center justify-center mx-auto transition">
+                                <i class="fa-solid fa-camera text-xl"></i>
+                            </div>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-200">문제 이미지를 드래그하거나 클릭하여 업로드하세요</p>
+                            <p class="text-[11px] text-slate-400">PNG, JPG 지원 · AI가 문제를 자동 텍스트화합니다</p>
+                            <div class="pt-2">
+                                <span class="inline-block bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold px-3 py-1 rounded-lg border border-slate-700">샘플 문제 스캔 테스트</span>
+                            </div>
+                        </div>
+
+                        <!-- 이미지 업로드 시 미리보기 영역 -->
+                        <div id="previewContainer" class="hidden space-y-2">
+                            <img id="imagePreview" src="" alt="문제 미리보기" class="max-h-44 mx-auto rounded-lg object-contain shadow-md border border-slate-700">
+                            <p id="scanStatusText" class="text-xs text-blue-400 font-semibold animate-pulse"><i class="fa-solid fa-spinner fa-spin"></i> AI가 문제 텍스트를 분석 중입니다...</p>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">문제 내용 (OCR 추출 결과)</label>
-                        <textarea id="problemText" rows="3" placeholder="스캔 시 문제 내용이 자동 입력되거나 직접 작성할 수 있습니다." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                    <button type="button" onclick="addNote()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition shadow text-sm">
-                        오답노트에 저장하기
-                    </button>
-                </form>
+
+                    <!-- 오답 데이터 입력 폼 -->
+                    <form id="noteForm" class="space-y-3.5 mt-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">과목 선택</label>
+                                <select id="subjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                                    <option value="수학">수학</option>
+                                    <option value="영어">영어</option>
+                                    <option value="국어">국어</option>
+                                    <option value="과학">과학</option>
+                                    <option value="사회">사회</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">체감 난이도</label>
+                                <select id="difficultySelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                                    <option value="상">상 (고난도 / 킬러)</option>
+                                    <option value="중" selected>중 (보통)</option>
+                                    <option value="하">하 (기본 개념)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">OCR 문제 추출 내용 & 메모</label>
+                            <textarea id="problemText" rows="3" placeholder="스캔 완료 시 문제 내용이 자동 입력됩니다. 오답 이유나 해설 메모를 추가해 보세요." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                        </div>
+
+                        <button type="button" onclick="addNote()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-bookmark"></i> 오답노트에 저장하기
+                        </button>
+                    </form>
+                </div>
             </div>
 
-            <!-- 2. AI 취약점 분석 리포트 -->
-            <div class="bg-slate-800/60 backdrop-blur-md border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg flex flex-col justify-between">
-                <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-                    <h2 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-indigo-400"></i> 과목별 취약점 분석 리포트
-                    </h2>
-                    <span class="text-xs text-indigo-300 font-semibold">실시간 업데이트</span>
-                </div>
-                
-                <div class="w-full h-64 flex items-center justify-center">
-                    <canvas id="vulnerabilityChart"></canvas>
+            <!-- STEP 2: AI 취약점 분석 리포트 & Chart.js -->
+            <div id="reportSection" class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-6 rounded-2xl space-y-5 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-sm">2</span>
+                            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-chart-radar text-indigo-400"></i> 과목별 취약점 분석 리포트
+                            </h2>
+                        </div>
+                        <span class="text-[11px] bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-full font-medium">Step 2 / 3</span>
+                    </div>
+
+                    <!-- 차트 렌더링 컨테이너 -->
+                    <div class="relative w-full h-60 sm:h-64 flex items-center justify-center p-2">
+                        <canvas id="vulnerabilityChart"></canvas>
+                    </div>
+
+                    <!-- 과목별 취약 태그 현황 -->
+                    <div class="grid grid-cols-3 gap-2 my-3 text-center">
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded-xl">
+                            <span class="text-[10px] text-slate-400 block">가장 취약한 과목</span>
+                            <span class="text-xs font-bold text-red-400" id="weakestSubject">수학 (85%)</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded-xl">
+                            <span class="text-[10px] text-slate-400 block">누적 등록 오답</span>
+                            <span class="text-xs font-bold text-blue-400" id="totalNotesCount">14개</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded-xl">
+                            <span class="text-[10px] text-slate-400 block">이번 주 복습 완료율</span>
+                            <span class="text-xs font-bold text-emerald-400" id="reviewRate">78%</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-indigo-950/50 border border-indigo-800/40 p-3.5 rounded-xl text-xs space-y-1">
-                    <p class="font-bold text-indigo-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-robot"></i> AI 학습 가이드 피드백
+                <!-- AI 피드백 카드 -->
+                <div class="bg-gradient-to-r from-indigo-950/60 to-slate-900 border border-indigo-800/40 p-4 rounded-xl space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <p class="font-bold text-xs text-indigo-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-robot text-indigo-400"></i> AI 맞춤 처방 분석 피드백
+                        </p>
+                        <span class="text-[10px] text-slate-400">실시간 감지</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed" id="aiFeedback">
+                        현재 <strong class="text-white">수학(삼각함수/미적분)</strong> 및 <strong class="text-white">과학(물리 파트)</strong>의 오답 누적률이 높습니다. 주말 집중 복습 스케줄 이수를 권장합니다.
                     </p>
-                    <p class="text-slate-300" id="aiFeedback">현재 수학 및 과학 단원에서 오답 빈도가 높습니다. 삼각함수와 물리 공식 개념 복습을 권장합니다.</p>
                 </div>
             </div>
 
         </div>
 
-        <!-- 3. 학습 플래너 섹션 -->
-        <section class="bg-slate-800/60 backdrop-blur-md border border-slate-700/60 p-6 rounded-2xl space-y-4 shadow-lg">
-            <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-                <h2 class="text-lg font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-check text-emerald-400"></i> 일일 오답 복습 플래너
-                </h2>
-                <span class="text-xs bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-1 rounded-md">오늘의 복습 목표</span>
+        <!-- 4. STEP 3: 일일 오답 복습 플래너 섹션 -->
+        <section class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-6 rounded-2xl space-y-5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-sm">3</span>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check text-emerald-400"></i> 일일 오답 복습 플래너
+                        </h2>
+                        <p class="text-xs text-slate-400">에빙하우스 망각곡선 기반 자동으로 계산된 오늘 복습 리스트입니다.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold px-3 py-1 rounded-full">
+                        오늘 완료 <span id="completedCount">1</span> / <span id="totalPlannerCount">3</span>
+                    </span>
+                    <button onclick="addNewCustomTask()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> 과제 추가
+                    </button>
+                </div>
             </div>
 
+            <!-- 플래너 리스트 그리드 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="plannerList">
-                <div class="bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">수학</span>
-                        <h3 class="font-semibold text-sm mt-1">미적분 그래프 개형 파악 오답</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">망각곡선 기준: 오늘 2회차 복습</p>
+                
+                <!-- 플래너 카드리스트 항목 1 -->
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center transition hover:border-slate-700 group">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded">수학</span>
+                            <span class="text-[10px] text-slate-400">D+1일차 복습</span>
+                        </div>
+                        <h3 class="font-semibold text-xs sm:text-sm text-slate-200 group-hover:text-white">미적분 그래프 개형 추론 오답</h3>
+                        <p class="text-[11px] text-slate-400">망각곡선 주기: 2회차 검토 필요</p>
                     </div>
-                    <button class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                    <button type="button" onclick="toggleTask(this)" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:text-emerald-500 transition">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </button>
                 </div>
-                <div class="bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">영어</span>
-                        <h3 class="font-semibold text-sm mt-1">빈칸 추론 34번 유형 복습</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">망각곡선 기준: 오늘 1회차 복습</p>
+
+                <!-- 플래너 카드리스트 항목 2 -->
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center transition hover:border-slate-700 group">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">영어</span>
+                            <span class="text-[10px] text-slate-400">D+3일차 복습</span>
+                        </div>
+                        <h3 class="font-semibold text-xs sm:text-sm text-slate-200 group-hover:text-white">빈칸 추론 34번 모의고사 문제</h3>
+                        <p class="text-[11px] text-slate-400">망각곡선 주기: 1회차 복습</p>
                     </div>
-                    <button class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                    <button type="button" onclick="toggleTask(this)" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:text-emerald-500 transition">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </button>
                 </div>
-                <div class="bg-slate-900/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">과학</span>
-                        <h3 class="font-semibold text-sm mt-1">화학 반응식 계수 맞추기</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">망각곡선 기준: 오늘 3회차 복습</p>
+
+                <!-- 플래너 카드리스트 항목 3 -->
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center transition hover:border-slate-700 group">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded">과학</span>
+                            <span class="text-[10px] text-slate-400">D+7일차 복습</span>
+                        </div>
+                        <h3 class="font-semibold text-xs sm:text-sm text-slate-200 line-through opacity-60">화학 반응식 양적 관계 계산</h3>
+                        <p class="text-[11px] text-slate-400">망각곡선 주기: 3회차 완료</p>
                     </div>
-                    <button class="w-6 h-6 border-2 border-slate-500 rounded-full flex items-center justify-center hover:border-emerald-500 transition"></button>
+                    <button type="button" onclick="toggleTask(this)" class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500 text-emerald-400 flex items-center justify-center transition">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </button>
                 </div>
+
             </div>
         </section>
 
     </main>
 
-    <!-- 사용방법 모달 -->
+    <!-- 푸터 영역 -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-400 bg-slate-950">
+        <p>© 2026 AiNote & Planner. 초·중·고 인공지능 오답 분석 학습 플랫폼.</p>
+    </footer>
+
+    <!-- 모달 1: 사용방법 (How to Use) Guide -->
     <div id="howToUseModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-book-open text-blue-400"></i> 사용방법 Guide</h3>
-                <button onclick="closeModal('howToUseModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-base sm:text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-blue-400"></i> AiNote & Planner 사용방법
+                </h3>
+                <button onclick="closeModal('howToUseModal')" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
-            <div class="space-y-3 text-xs leading-relaxed text-slate-300">
-                <p><strong>1. 문제 스캔:</strong> 문제 사진을 업로드하면 OCR 기능이 문제 글자를 읽어옵니다.</p>
-                <p><strong>2. 취약점 분석:</strong> 저장된 오답 데이터를 바탕으로 AI가 본인의 제일 약한 과목 및 단원을 차트로 보여줍니다.</p>
-                <p><strong>3. 자동 스케줄링:</strong> 에빙하우스 망각곡선 주기에 맞춰 복습해야 할 날짜에 오답이 자동으로 플래너에 표시됩니다.</p>
+            <div class="space-y-3 text-xs sm:text-sm leading-relaxed text-slate-300">
+                <div class="flex gap-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 font-bold flex items-center justify-center text-xs shrink-0">1</span>
+                    <p><strong>OCR 문제 스캔:</strong> 문제 사진을 업로드하면 AI가 자동으로 텍스트를 추출해 줍니다.</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-xs shrink-0">2</span>
+                    <p><strong>취약점 정밀 분석:</strong> 등록한 오답 데이터를 기반으로 어떤 과목과 단원이 취약한지 레이더 차트 및 AI 리포트로 확인합니다.</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0">3</span>
+                    <p><strong>자동 복습 플래너:</strong> 1일, 3일, 7일 주기의 에빙하우스 망각곡선 법칙에 따라 복습해야 할 오답이 플래너에 자동 등록됩니다.</p>
+                </div>
             </div>
-            <button onclick="closeModal('howToUseModal')" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-xl text-xs font-bold text-white">확인</button>
+            <button onclick="closeModal('howToUseModal')" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl text-xs font-bold text-white transition">
+                확인했습니다
+            </button>
         </div>
     </div>
 
-    <!-- 수행평가 가이드 모달 -->
+    <!-- 모달 2: 수행평가 가이드 Guide -->
     <div id="evaluationModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-award text-yellow-400"></i> 수행평가 가이드</h3>
-                <button onclick="closeModal('evaluationModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 text-slate-100 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-base sm:text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-award text-yellow-400"></i> 학년별 수행평가 가이드
+                </h3>
+                <button onclick="closeModal('evaluationModal')" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
-            <div class="space-y-3 text-xs leading-relaxed text-slate-300">
-                <p><strong>· 초등:</strong> 기본 개념 다지기 및 탐구활동 보고서 서식 안내</p>
-                <p><strong>· 중등:</strong> 서·논술형 대비 키워드 작성법 및 발표 자료 구성 가이드</p>
-                <p><strong>· 고등:</strong> 과목별 세특 연계 주제 탐구 보고서 및 수능 연계 문항 분석 방법</p>
+            
+            <div class="space-y-3 text-xs sm:text-sm text-slate-300">
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-blue-400 mb-1">🌱 초등 과정</h4>
+                    <p class="text-xs">기본 탐구보고서 작성법, 자기주도적 문제 해결 체크리스트 제공</p>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-indigo-400 mb-1">🌿 중등 과정</h4>
+                    <p class="text-xs">서·논술형 평가 대비 문제 분석 및 키워드 요약 작성 가이드</p>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-purple-400 mb-1">🌳 고등 과정</h4>
+                    <p class="text-xs">과목별 세부능력 및 특기사항(세특) 연계 탐구 주제 추천 및 수능 연계 문항 심화 분석</p>
+                </div>
             </div>
-            <button onclick="closeModal('evaluationModal')" class="w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-xl text-xs font-bold text-white">확인</button>
+            
+            <button onclick="closeModal('evaluationModal')" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl text-xs font-bold text-white transition">
+                닫기
+            </button>
         </div>
     </div>
 
-    <!-- 자바스크립트 로직 -->
+    <!-- 5. 앱 구동 자바스크립트 로직 -->
     <script>
-        // 1. 학교급 설정 기능
+        // 글로벌 데이터 상태
+        let currentLevel = 'high';
+        let chartInstance = null;
+
+        // 샘플 OCR 데이터 셋
+        const sampleOCRTexts = {
+            '수학': '다음 함수 f(x) = x^3 - 3x + 2 의 극댓값과 극솟값의 합을 구하시오. (단, x는 실수)',
+            '영어': 'Choose the most appropriate word for the blank: The new policy will significantly _____ the process.',
+            '국어': '다음 글의 관점에 따른 비판으로 가장 적절한 것을 고르시오.',
+            '과학': '물체 A와 B가 마찰이 없는 수평면에서 충돌할 때, 운동량 보존 법칙을 적용하여 계산하시오.',
+            '사회': '다음 지문이 설명하는 헌법 기본권의 종류로 올바른 것은?'
+        };
+
+        // 1. 학교급 선택 제어
         function setSchoolLevel(level) {
+            currentLevel = level;
             const buttons = {
                 elementary: document.getElementById('btn-elementary'),
                 middle: document.getElementById('btn-middle'),
                 high: document.getElementById('btn-high')
             };
             const levelTag = document.getElementById('levelTag');
+            const schoolBadge = document.getElementById('schoolBadge');
 
             Object.keys(buttons).forEach(key => {
-                buttons[key].className = 'px-3 py-1.5 rounded-lg font-semibold transition text-slate-400 hover:text-white';
+                buttons[key].className = 'px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1';
             });
 
-            buttons[level].className = 'px-3 py-1.5 rounded-lg font-semibold transition bg-blue-600 text-white shadow';
+            buttons[level].className = 'px-3 py-1.5 rounded-lg transition bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30 flex items-center gap-1';
 
-            const levelNames = {
-                elementary: '초등 기초 개념 & 재미있는 Quiz 학습 시스템',
-                middle: '중등 내신 대비 핵심 개념 정리 시스템',
-                high: '고등 수능/내신 대비 정밀 AI 시스템'
+            const levelInfo = {
+                elementary: {
+                    badge: '초등학생',
+                    tag: '초등 기초 개념 & 재미있는 Quiz 학습 시스템',
+                    feedback: '기초 연산과 국어 어휘 복습이 필요합니다. 하루 15분 꾸준한 오답 확인을 추천합니다.'
+                },
+                middle: {
+                    badge: '중학생',
+                    tag: '중등 내신 대비 핵심 개념 정리 시스템',
+                    feedback: '중2 과정 방정식과 영문법 파트에 오답이 concentrated 되어 있습니다.'
+                },
+                high: {
+                    badge: '고등학생',
+                    tag: '고등 수능/내신 대비 정밀 AI 시스템',
+                    feedback: '현재 수학(삼각함수/미적분) 및 과학(물리 파트)의 오답 누적률이 높습니다. 주말 집중 복습을 권장합니다.'
+                }
             };
-            levelTag.textContent = levelNames[level];
+
+            schoolBadge.textContent = levelInfo[level].badge;
+            levelTag.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> ${levelInfo[level].tag}`;
+            document.getElementById('aiFeedback').textContent = levelInfo[level].feedback;
         }
 
-        // 2. 다크모드 / 라이트모드 토글 기능
+        // 2. 라이트/다크 모드 토글
         function toggleDarkMode() {
             const html = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
@@ -267,57 +497,160 @@
 
             if (html.classList.contains('dark')) {
                 html.classList.remove('dark');
-                document.body.classList.replace('bg-slate-900', 'bg-slate-100');
-                document.body.classList.replace('text-slate-100', 'text-slate-800');
                 themeIcon.className = 'fa-solid fa-moon text-slate-700';
                 themeText.textContent = '다크모드';
             } else {
                 html.classList.add('dark');
-                document.body.classList.replace('bg-slate-100', 'bg-slate-900');
-                document.body.classList.replace('text-slate-800', 'text-slate-100');
                 themeIcon.className = 'fa-solid fa-sun text-amber-400';
                 themeText.textContent = '라이트모드';
             }
         }
 
-        // 3. 모달 제어 기능
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.remove('hidden');
+        // 3. 모달 열기/닫기
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-        }
-
-        // 4. 스캔 위치 스크롤 기능
+        // 4. 스크롤 이동 함수
         function scrollToScan() {
             document.getElementById('scanSection').scrollIntoView({ behavior: 'smooth' });
         }
-
-        // 5. 문제 추가 저장 시뮬레이션
-        function addNote() {
-            const text = document.getElementById('problemText').value;
-            if(!text.trim()) {
-                alert('문제 내용을 입력해주세요!');
-                return;
-            }
-            alert('오답노트에 성공적으로 저장되었습니다!');
-            document.getElementById('problemText').value = '';
+        function scrollToReport() {
+            document.getElementById('reportSection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 6. Chart.js 시각화 차트 초기화
+        // 5. OCR 이미지 스캔 시뮬레이션
+        function triggerFileInput() {
+            document.getElementById('imageInput').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            const placeholder = document.getElementById('uploadPlaceholder');
+            const previewContainer = document.getElementById('previewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            const scanLine = document.getElementById('scanLine');
+            const scanStatusText = document.getElementById('scanStatusText');
+
+            if (file || true) { // 파일 선택 시 혹은 샘플
+                placeholder.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                scanLine.classList.remove('hidden');
+
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.src = 'https://placehold.co/600x300/1e293b/60a5fa?text=Math+Problem+OCR+Scan';
+                }
+
+                // 2초 후 OCR 텍스트 자동 추출 완료 효과
+                setTimeout(() => {
+                    scanLine.classList.add('hidden');
+                    scanStatusText.className = 'text-xs text-emerald-400 font-semibold';
+                    scanStatusText.innerHTML = '<i class="fa-solid fa-circle-check"></i> OCR 문제 추출이 완료되었습니다!';
+                    
+                    const selectedSubject = document.getElementById('subjectSelect').value;
+                    document.getElementById('problemText').value = sampleOCRTexts[selectedSubject] || sampleOCRTexts['수학'];
+                }, 2000);
+            }
+        }
+
+        // 6. 오답노트 저장 및 차트 업데이트
+        function addNote() {
+            const text = document.getElementById('problemText').value;
+            if (!text.trim()) {
+                alert('스캔하거나 입력된 문제 내용이 없습니다.');
+                return;
+            }
+
+            // 오답 카운트 업데이트 시뮬레이션
+            const countElem = document.getElementById('totalNotesCount');
+            let count = parseInt(countElem.textContent) || 14;
+            countElem.textContent = (count + 1) + '개';
+
+            // 차트 데이터 무작위 약간 증가
+            if (chartInstance) {
+                chartInstance.data.datasets[0].data[0] += 2;
+                chartInstance.update();
+            }
+
+            alert('오답노트에 성공적으로 저장되었습니다!');
+            document.getElementById('problemText').value = '';
+            document.getElementById('previewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+        }
+
+        // 7. 플래너 토글
+        function toggleTask(button) {
+            const card = button.closest('.group');
+            const title = card.querySelector('h3');
+            
+            if (button.classList.contains('bg-emerald-500/20')) {
+                // 해제
+                button.className = 'w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:text-emerald-500 transition';
+                title.classList.remove('line-through', 'opacity-60');
+            } else {
+                // 완료
+                button.className = 'w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500 text-emerald-400 flex items-center justify-center transition';
+                title.classList.add('line-through', 'opacity-60');
+            }
+            updatePlannerCount();
+        }
+
+        function updatePlannerCount() {
+            const completed = document.querySelectorAll('#plannerList .line-through').length;
+            const total = document.querySelectorAll('#plannerList > div').length;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('totalPlannerCount').textContent = total;
+        }
+
+        function addNewCustomTask() {
+            const taskName = prompt('추가할 복습 과제를 입력하세요:', '국어 문학 시어 심상 복습');
+            if(taskName && taskName.trim()) {
+                const list = document.getElementById('plannerList');
+                const newItem = document.createElement('div');
+                newItem.className = 'bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center transition hover:border-slate-700 group';
+                newItem.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded">직접추가</span>
+                            <span class="text-[10px] text-slate-400">오늘 복습</span>
+                        </div>
+                        <h3 class="font-semibold text-xs sm:text-sm text-slate-200 group-hover:text-white">${taskName}</h3>
+                        <p class="text-[11px] text-slate-400">사용자 직접 입력 과제</p>
+                    </div>
+                    <button type="button" onclick="toggleTask(this)" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:text-emerald-500 transition">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </button>
+                `;
+                list.appendChild(newItem);
+                updatePlannerCount();
+            }
+        }
+
+        // 8. 초기 차트 초기화 (Chart.js)
         window.addEventListener('DOMContentLoaded', () => {
             const ctx = document.getElementById('vulnerabilityChart').getContext('2d');
-            new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: ['수학', '영어', '국어', '과학', '사회'],
                     datasets: [{
-                        label: '오답 발생 비율',
+                        label: '취약 오답 비율 (%)',
                         data: [85, 45, 60, 75, 30],
-                        backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         borderColor: 'rgba(59, 130, 246, 1)',
                         pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
                         borderWidth: 2
                     }]
                 },
@@ -328,7 +661,10 @@
                         r: {
                             angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
                             grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            pointLabels: { color: '#94a3b8', font: { size: 12 } },
+                            pointLabels: { 
+                                color: '#94a3b8', 
+                                font: { size: 12, family: 'Pretendard', weight: 'bold' } 
+                            },
                             ticks: { display: false, max: 100 }
                         }
                     },
@@ -337,6 +673,8 @@
                     }
                 }
             });
+
+            updatePlannerCount();
         });
     </script>
 </body>
